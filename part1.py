@@ -3,7 +3,7 @@ alpha_val = 0.9
 beta_val = 0.2
 small_gamma_val = 0.1
 lambda_0 = 1
-lambda_5 = 5
+lambda_1 = 5
 
 n = 10
 big_T = 100
