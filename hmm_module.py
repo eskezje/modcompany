@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter1d
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 from scipy.stats import poisson
 
 
@@ -273,9 +271,6 @@ def hmm_pipeline(X: np.ndarray, alpha_param: float, beta_param: float, gamma_par
     qC = compute_smoothed_prob(alpha_filtered, beta_msg)
     qZ = posterior_Z(X, qC, alpha_param, lambda0, lambda1)
 
-    C_hat = np.argmax(qC, axis=1)
-    Z_hat = (qZ >= 0.5).astype(int)
-
     return {
         "Gamma": Gamma,
         "pi_init": pi_init,
@@ -283,7 +278,5 @@ def hmm_pipeline(X: np.ndarray, alpha_param: float, beta_param: float, gamma_par
         "alpha_filt": alpha_filtered,
         "beta_msg": beta_msg,
         "qC": qC,
-        "qZ": qZ,
-        "C_hat": C_hat,
-        "Z_hat": Z_hat,
+        "qZ": qZ
     }
