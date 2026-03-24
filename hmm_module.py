@@ -271,6 +271,9 @@ def hmm_pipeline(X: np.ndarray, alpha_param: float, beta_param: float, gamma_par
     qC = compute_smoothed_prob(alpha_filtered, beta_msg)
     qZ = posterior_Z(X, qC, alpha_param, lambda0, lambda1)
 
+    c_hat = np.argmax(qC, axis=1)
+    z_hat = (qZ > 0.5).astype(int)
+
     return {
         "Gamma": Gamma,
         "pi_init": pi_init,
@@ -278,5 +281,26 @@ def hmm_pipeline(X: np.ndarray, alpha_param: float, beta_param: float, gamma_par
         "alpha_filt": alpha_filtered,
         "beta_msg": beta_msg,
         "qC": qC,
-        "qZ": qZ
+        "qZ": qZ,
+        "c_hat": c_hat,
+        "z_hat": z_hat
     }
+
+def plot_heatmap_z(z_true, qZ):
+    """
+    Plots a heatmap of the true and estimated Z values over time and neurons.
+    """
+    fig, axes = plt.subplots(2, 1, figsize=(12, 6))
+    im0 = axes[0].imshow(z_true.T, aspect="auto", cmap="plasma")
+    axes[0].set_title("True Z")
+    axes[0].set_xlabel("Time")
+    axes[0].set_ylabel("Neuron")
+    fig.colorbar(im0, ax=axes[0])
+    
+    im1 = axes[1].imshow(qZ.T, aspect="auto", cmap="plasma")
+    axes[1].set_title("Estimated Z")
+    axes[1].set_xlabel("Time")
+    axes[1].set_ylabel("Neuron")
+    fig.colorbar(im1, ax=axes[1])
+    
+    plt.show()
