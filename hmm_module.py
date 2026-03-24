@@ -388,3 +388,60 @@ def learn_all_params_from_known_data(X: np.ndarray, C: np.ndarray, Z: np.ndarray
         "lambda0_hat": lambda0_hat,
         "lambda1_hat": lambda1_hat
     }
+
+def hard_assigment_EM(
+                    X: np.ndarray, 
+                    alpha_param_init: float,
+                    beta_param_init: float, 
+                    gamma_param_init: float, 
+                    lambda0_init: float, 
+                    lambda1_init: float,
+                    iter: int):
+
+    alpha_cur = alpha_param_init
+    beta_cur = beta_param_init
+    gamma_cur = gamma_param_init
+    lambda0_cur = lambda0_init
+    lambda1_cur = lambda1_init
+
+    previous_runs = []
+
+    for i in range(iter):
+        res = hmm_pipeline(X, alpha_cur, beta_cur, gamma_cur, lambda0_cur, lambda1_cur)
+        c_hat = res["c_hat"]
+        z_hat = res["z_hat"]
+
+        new_params = learn_all_params_from_known_data(X, c_hat, z_hat)
+
+        alpha_new = new_params["alpha_hat"]
+        beta_new = new_params["beta_hat"]
+        gamma_new = new_params["gamma_hat"]
+        lambda0_new = new_params["lambda0_hat"]
+        lambda1_new = new_params["lambda1_hat"]
+
+        previous_runs.append({
+            "iteration": i,
+            "alpha": alpha_new,
+            "beta": beta_new,
+            "gamma": gamma_new,
+            "lambda0": lambda0_new,
+            "lambda1": lambda1_new
+        })
+
+        alpha_cur = alpha_new
+        beta_cur = beta_new
+        gamma_cur = gamma_new
+        lambda0_cur = lambda0_new
+        lambda1_cur = lambda1_new
+
+    final_result = hmm_pipeline(X, alpha_cur, beta_cur, gamma_cur, lambda0_cur, lambda1_cur)
+
+    return {
+        "alpha_hat": alpha_cur,
+        "beta_hat": beta_cur,
+        "gamma_hat": gamma_cur,
+        "lambda0_hat": lambda0_cur,
+        "lambda1_hat": lambda1_cur,
+        "previous_runs": previous_runs,
+        "final_res": final_result
+    }
