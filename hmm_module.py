@@ -46,7 +46,7 @@ def simulate_c(T: int, gamma_param: float, beta_param: float, rng=None) -> np.nd
 
     return C
 
-def simulate_z(C: np.ndarray, n: int, alpha_param, rng=None) -> np.ndarray:
+def simulate_z(C: np.ndarray, n: int, alpha_param: float, rng=None) -> np.ndarray:
     """
     Simulates the Z states for T times, for n neurons, given the C states and the alpha parameter.
     """
@@ -61,7 +61,7 @@ def simulate_z(C: np.ndarray, n: int, alpha_param, rng=None) -> np.ndarray:
 
     return Z
 
-def simulate_x(Z: np.ndarray, lambda_0: int, lambda_1: int, rng=None) -> np.ndarray:
+def simulate_x(Z: np.ndarray, lambda_0: float, lambda_1: float, rng=None) -> np.ndarray:
     """
     Simulates the X states for T times, for n neurons, given the Z states and the lambda parameters.
     """
@@ -70,7 +70,7 @@ def simulate_x(Z: np.ndarray, lambda_0: int, lambda_1: int, rng=None) -> np.ndar
     X = rng.poisson(lam=lam)
     return X
 
-def simulate_hmm(T: int, n: int, alpha_param: float, beta_param: float, gamma_param: float, lambda_0:int, lambda_1:int, seed=None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def simulate_hmm(T: int, n: int, alpha_param: float, beta_param: float, gamma_param: float, lambda_0:float , lambda_1:float, seed=None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Simulates the whole HMM process for T time steps, n neurons, and given the parameters. Returns the C, Z and X states.
     """
@@ -149,13 +149,13 @@ def plot_mean(X: np.ndarray) -> None:
     plt.title("mean spikes count over time")
     plt.show()
 
-def make_datasets(M: int, t_index: int, T: int, n: int, alpha_param, beta_param, gamma_param, lambda_0, lambda_1, seed=123) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def make_datasets(M: int, t_index: int, T: int, n: int, alpha_param: float, beta_param: float, gamma_param :float, lambda_0: float, lambda_1: float, seed=123) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Simulates M independent HMM sequences, where we save the features (spike counts) and labels (hidden states) at specific time indexes, as well as the full sequences of C, Z and X for all M experiments.
     """
     rng = np.random.default_rng(seed)
 
-    x_features = np.empty((M, n), dtype=float)      # one row per experiment 
+    x_features = np.empty((M, n), dtype=int)      # one row per experiment 
     y_labels = np.empty(M, dtype=int)              # class label C_t in {0, 1, 2}
 
     X_full = np.empty((M, T, n), dtype=float)
@@ -174,7 +174,7 @@ def make_datasets(M: int, t_index: int, T: int, n: int, alpha_param, beta_param,
 
     return x_features, y_labels, X_full, C_full, Z_full
 
-def emission_matrix(X: np.ndarray, alpha_param : float, lambda0: int, lambda1: int) -> np.ndarray:
+def emission_matrix(X: np.ndarray, alpha_param : float, lambda0: float, lambda1: float) -> np.ndarray:
     """
     We compute the emission matrix B, to reduce the problem to a HMM
     """
@@ -230,7 +230,7 @@ def compute_smoothed_prob(alpha: np.ndarray, beta: np.ndarray) -> np.ndarray:
     smoothed = smoothed / smoothed.sum(axis=1, keepdims=True)  # issues with floating point numbers
     return smoothed
 
-def posterior_Z(X: np.ndarray, qC: np.ndarray, alpha_param: float, lambda0: int, lambda1: int) -> np.ndarray:
+def posterior_Z(X: np.ndarray, qC: np.ndarray, alpha_param: float, lambda0: float, lambda1: float) -> np.ndarray:
     """
     Computing the posterior probability of Z=1 given the observations X and the smoothed probabilities of C, using Bayes rule and marginalizing over C.
     """
@@ -256,7 +256,7 @@ def posterior_Z(X: np.ndarray, qC: np.ndarray, alpha_param: float, lambda0: int,
             qZ1[t, i ] = (qZ1_given_c[t,i,0] * qC[t,0] + qZ1_given_c[t,i,1] * qC[t,1] + qZ1_given_c[t,i,2] * qC[t,2])
     return qZ1
 
-def hmm_pipeline(X: np.ndarray, alpha_param: float, beta_param: float, gamma_param: float, lambda0: int, lambda1:int ) -> dict[str, np.ndarray]:
+def hmm_pipeline(X: np.ndarray, alpha_param: float, beta_param: float, gamma_param: float, lambda0: float, lambda1:float) -> dict[str, np.ndarray]:
     """
     Given the observed data X and the parameters of the model, we use the forward-backward algorithm to compute the smoothed probabilities of the hidden states C, and then we compute the posterior probabilities of Z given X and C. 
     We also return the most likely sequence of C and Z for each time point. 
@@ -286,7 +286,7 @@ def hmm_pipeline(X: np.ndarray, alpha_param: float, beta_param: float, gamma_par
         "z_hat": z_hat
     }
 
-def plot_heatmap_z(z_true, qZ):
+def plot_heatmap_z(z_true: np.ndarray, qZ: np.ndarray) -> None:
     """
     Plots a heatmap of the true and estimated Z values over time and neurons.
     """
@@ -303,4 +303,88 @@ def plot_heatmap_z(z_true, qZ):
     axes[1].set_ylabel("Neuron")
     fig.colorbar(im1, ax=axes[1])
     
+    plt.tight_layout()
     plt.show()
+
+def lambda_hat_from_xz(X: np.ndarray, Z_true: np.ndarray) -> tuple[float, float]:
+    """
+    A simple function to learn the lambda parameters for the emission distribution, given the observed data X and the true Z values.
+    we will take lambda0 as the average of Z_t,i=0 and lambda1 as the average of Z_t,i=1, using the true Z values.
+    """
+    lambda0 = 0.0
+    lambda1 = 0.0
+    counts0 = 0
+    counts1 = 0
+    for t in range(X.shape[0]):
+        for i in range(X.shape[1]):
+            if Z_true[t, i] == 0:
+                lambda0 += X[t, i]
+                counts0 += 1
+            else:
+                lambda1 += X[t, i]
+                counts1 += 1
+    lambda0 = lambda0 / counts0 if counts0 > 0 else 0.0
+    lambda1 = lambda1 / counts1 if counts1 > 0 else 0.0
+    return lambda0, lambda1
+
+def alpha_hat_from_cz(C: np.ndarray, Z: np.ndarray) -> float:
+    """
+    Gets the average value of Z_t,i=1 when C_t=1, and the average value of Z_t,i=0 when C_t=0, to learn the alpha parameter for the emission distribution, given the true C and Z values.
+    """
+    alpha_num = 0 
+    alpha_den = 0 
+
+    for t in range(len(C)):
+        if C[t] == 0:
+            alpha_num += np.sum(Z[t] == 0)
+            alpha_den += Z.shape[1]
+        elif C[t] == 1:
+            alpha_num += np.sum(Z[t] == 1)
+            alpha_den += Z.shape[1]
+
+    return alpha_num/alpha_den if alpha_den > 0 else 0.0
+
+def beta_hat_from_C(C: np.ndarray) -> float:
+    """
+    Gets the average value of C_t+1=1 or 0 when C_t=2, to learn the beta parameter for the transition distribution, given the true C values.
+    """
+    seen = 0
+    from_2 = 0
+    for t in range(len(C)-1):
+        if C[t] == 2:
+            from_2 += 1 
+            if C[t+1] == 1 or C[t+1] == 0:
+                seen +=1 
+
+    return seen/from_2 if from_2 > 0 else 0.0
+
+def gamma_hat_from_C(C: np.ndarray) -> float:
+    """
+    Gets the average value of C_t+1=2 when C_t=0 or 1, to learn the gamma parameter for the transition distribution, given the true C values.
+    """
+    from_0_1 = 0
+    seen = 0
+    for t in range(len(C)-1):
+        if C[t] == 0 or C[t] == 1:
+            from_0_1 += 1
+            if C[t+1] == 2:
+                seen += 1
+    return seen/from_0_1 if from_0_1 > 0 else 0.0
+
+
+def learn_all_params_from_known_data(X: np.ndarray, C: np.ndarray, Z: np.ndarray) -> dict[str, float]:
+    """
+    Tries to lean all the parameters of the model given the complete data, meaning the observed X and the true hidden states C and Z. 
+    """
+    lambda0_hat, lambda1_hat = lambda_hat_from_xz(X, Z)
+    alpha_hat = alpha_hat_from_cz(C, Z)
+    beta_hat = beta_hat_from_C(C)
+    gamma_hat = gamma_hat_from_C(C)
+
+    return {
+        "alpha_hat": alpha_hat,
+        "beta_hat": beta_hat,
+        "gamma_hat": gamma_hat,
+        "lambda0_hat": lambda0_hat,
+        "lambda1_hat": lambda1_hat
+    }
