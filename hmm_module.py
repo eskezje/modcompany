@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter1d
 from scipy.stats import poisson
+from sklearn.cluster import KMeans
 
 
 def create_transition_matrix(gamma_param: float, beta_param: float) -> np.ndarray:
@@ -445,3 +446,27 @@ def hard_assigment_EM(
         "previous_runs": previous_runs,
         "final_res": final_result
     }
+
+
+def init_lambda_kmeans(X: np.ndarray) -> tuple[float, float]:
+    x_vals = X.reshape(-1, 1)
+
+    kmeans = KMeans(n_clusters=2, random_state=0, n_init=10)
+    estimated_labels = kmeans.fit_predict(x_vals)
+
+    cluster0 = []
+    cluster1 = []
+
+    for i in range(len(estimated_labels)):
+        if estimated_labels[i] == 0:
+            cluster0.append(x_vals[i, 0])
+        else:
+            cluster1.append(x_vals[i, 0])
+
+    mean0 = np.mean(cluster0)
+    mean1 = np.mean(cluster1)
+
+    lambda0_guess = min(mean0, mean1)
+    lambda1_guess = max(mean0, mean1)
+
+    return float(lambda0_guess), float(lambda1_guess)
