@@ -397,7 +397,8 @@ def hard_assigment_EM(
                     gamma_param_init: float, 
                     lambda0_init: float, 
                     lambda1_init: float,
-                    iter: int):
+                    max_iter: int = 500,
+                    change_threshold: float = 1e-7):
 
     alpha_cur = alpha_param_init
     beta_cur = beta_param_init
@@ -407,7 +408,7 @@ def hard_assigment_EM(
 
     previous_runs = []
 
-    for i in range(iter):
+    for i in range(max_iter):
         res = hmm_pipeline(X, alpha_cur, beta_cur, gamma_cur, lambda0_cur, lambda1_cur)
         c_hat = res["c_hat"]
         z_hat = res["z_hat"]
@@ -420,6 +421,10 @@ def hard_assigment_EM(
         lambda0_new = new_params["lambda0_hat"]
         lambda1_new = new_params["lambda1_hat"]
 
+        delta = max(abs(alpha_new - alpha_cur), abs(beta_new - beta_cur), abs(gamma_new - gamma_cur), abs(lambda0_new - lambda0_cur), abs(lambda1_new - lambda1_cur))
+        if delta < change_threshold:
+            print(f"We wont change much more, and have converged at iteration {i}.")
+            break
         previous_runs.append({
             "iteration": i,
             "alpha": alpha_new,
