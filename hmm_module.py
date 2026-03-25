@@ -259,8 +259,7 @@ def posterior_Z(X: np.ndarray, qC: np.ndarray, alpha_param: float, lambda0: floa
 
 def hmm_pipeline(X: np.ndarray, alpha_param: float, beta_param: float, gamma_param: float, lambda0: float, lambda1:float) -> dict[str, np.ndarray]:
     """
-    Given the observed data X and the parameters of the model, we use the forward-backward algorithm to compute the smoothed probabilities of the hidden states C, and then we compute the posterior probabilities of Z given X and C. 
-    We also return the most likely sequence of C and Z for each time point. 
+    Compute posterior probabilities, convert them to hard assignments with argmax, and use those assignments to update the parameters.
     """
     Gamma = create_transition_matrix(gamma_param, beta_param)
     pi_init = np.array([0.0, 0.0, 1.0], dtype=float)
@@ -392,13 +391,31 @@ def learn_all_params_from_known_data(X: np.ndarray, C: np.ndarray, Z: np.ndarray
 
 def hard_assigment_EM(
                     X: np.ndarray, 
-                    alpha_param_init: float,
-                    beta_param_init: float, 
-                    gamma_param_init: float, 
-                    lambda0_init: float, 
-                    lambda1_init: float,
+                    alpha_param_init: float | None = None,
+                    beta_param_init: float | None = None, 
+                    gamma_param_init: float | None = None, 
+                    lambda0_init: float | None = None, 
+                    lambda1_init: float | None = None,
                     max_iter: int = 500,
                     change_threshold: float = 1e-7):
+
+    if lambda0_init is None or lambda1_init is None:
+        lambda0_init, lambda1_init, n0, n1 = init_lambda_kmeans(X)
+    else:
+        n0 = None 
+        n1 = None 
+    
+    if alpha_param_init is None:
+        if n0 is not None and n1 is not None:
+            alpha_param_init = n1 / (n0 + n1)
+        else:
+            alpha_param_init = 0.9
+
+    if beta_param_init is None:
+        beta_param_init = 0.1
+
+    if gamma_param_init is None:
+        gamma_param_init = 0.1
 
     alpha_cur = alpha_param_init
     beta_cur = beta_param_init
@@ -453,10 +470,10 @@ def hard_assigment_EM(
     }
 
 
-def init_lambda_kmeans(X: np.ndarray) -> tuple[float, float]:
+def init_lambda_kmeans(X: np.ndarray) -> tuple[float, float, int, int]:
     x_vals = X.reshape(-1, 1)
 
-    kmeans = KMeans(n_clusters=2, random_state=0, n_init=10)
+    kmeans = KMeans(n_clusters=2, random_state=0)
     estimated_labels = kmeans.fit_predict(x_vals)
 
     cluster0 = []
@@ -471,7 +488,43 @@ def init_lambda_kmeans(X: np.ndarray) -> tuple[float, float]:
     mean0 = np.mean(cluster0)
     mean1 = np.mean(cluster1)
 
-    lambda0_guess = min(mean0, mean1)
-    lambda1_guess = max(mean0, mean1)
+    if mean0 < mean1:
+        lambda0_guess = mean0
+        lambda1_guess = mean1
+        n0 = len(cluster0)
+        n1 = len(cluster1)
+    else:
+        lambda0_guess = mean1
+        lambda1_guess = mean0
+        n0 = len(cluster1)
+        n1 = len(cluster0)
 
-    return float(lambda0_guess), float(lambda1_guess)
+    return float(lambda0_guess), float(lambda1_guess), n0, n1
+
+
+def plot_convergence(em_res):
+    runs = em_res["previous_runs"]
+
+    alphas = [run["alpha"] for run in runs]
+    betas= [run["beta"] for run in runs]
+    gammas = [run["gamma"] for run in runs]
+    lambda0s = [run["lambda0"] for run in runs]
+    lambda1s = [run["lambda1"] for run in runs]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+
+    ax1.plot(alphas, label=r"$\alpha$")
+    ax1.plot(betas, label=r"$\beta$")
+    ax1.plot(gammas, label=r"$\gamma$")
+    ax1.set_xlabel("EM iteration")
+    ax1.set_ylabel("Probability")
+    ax1.legend()
+
+    ax2.plot(lambda0s, label=r"$\lambda_0$")
+    ax2.plot(lambda1s, label=r"$\lambda_1$")
+    ax2.set_xlabel("EM iteration")
+    ax2.set_ylabel("Lambda value")
+    ax2.legend()
+
+    plt.tight_layout()
+    plt.show()
