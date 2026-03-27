@@ -293,6 +293,27 @@ def plot_heatmap_z(z_true: np.ndarray, qZ: np.ndarray) -> None:
     plt.tight_layout()
     plt.show()
 
+def plot_c_posterior(result) -> None:
+    plt.figure(figsize=(12,4))
+    plt.plot(result["qC"][:,0], label=r"$P(C_t=0\mid X)$")
+    plt.plot(result["qC"][:,1], label=r"$P(C_t=1\mid X)$")
+    plt.plot(result["qC"][:,2], label=r"$P(C_t=2\mid X)$")
+    plt.xlabel("t")
+    plt.ylabel("posterior probability")
+    plt.title("Posterior probabilities for $C_t$ on simulated data")
+    plt.legend()
+    plt.grid(alpha=0.6)
+    plt.show()
+
+
+def plot_heatmap_z_posterior(result) -> None:
+    plt.figure(figsize=(12,4))
+    plt.imshow(result["qZ"].T, aspect="auto", cmap="plasma")
+    plt.colorbar(label=r"$P(Z_{t,i}=1\mid X)$")
+    plt.xlabel("Time")
+    plt.ylabel("Neuron")
+    plt.title("Posterior heatmap for $Z_{t,i}$ on simulated data")
+    plt.show()
 
 def lambda_hat_from_xz(X: np.ndarray, Z_true: np.ndarray) -> tuple[float, float]:
     """
