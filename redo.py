@@ -415,10 +415,7 @@ def hard_assigment_EM(
         n1 = None 
     
     if alpha_param_init is None:
-        if n0 is not None and n1 is not None:
-            alpha_param_init = n1 / (n0 + n1)
-        else:
-            alpha_param_init = 0.9
+        alpha_param_init = 0.9
 
     if beta_param_init is None:
         beta_param_init = 0.1
