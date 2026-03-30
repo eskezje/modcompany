@@ -107,7 +107,7 @@ def plot_freq(X: np.ndarray) -> None:
             else:
                 counts[j] = 1
     plt.figure(figsize=(12,4))
-    plt.bar(counts.keys(), counts.values())
+    plt.bar(counts.keys(), counts.values()) # type: ignore
     plt.xlabel("spikes count")
     plt.ylabel("frequency")
     plt.title("frequency of spikes count across all neurons and time points")
@@ -121,10 +121,10 @@ def plot_all(X: np.ndarray) -> None:
     n = X.shape[1]
     fig, axes = plt.subplots(n, 1, figsize=(12, 1.4*n))
     for i in range(n):
-        axes[i].plot(t_vals, X[:, i], marker="o", markersize=4)
-        axes[i].set_xlabel("t")
-        axes[i].set_ylabel(rf"$X_{{t,{i+1}}}$")
-        axes[i].grid(alpha=0.6)
+        axes[i].plot(t_vals, X[:, i], marker="o", markersize=4) # type: ignore
+        axes[i].set_xlabel("t") # type: ignore
+        axes[i].set_ylabel(rf"$X_{{t,{i+1}}}$") # type: ignore
+        axes[i].grid(alpha=0.6) # type: ignore
     plt.suptitle("spikes count over time for all neurons", y=0.99)
     plt.tight_layout()
     plt.show()
