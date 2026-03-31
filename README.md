@@ -9,6 +9,10 @@ To run the notebook simply click `run all`, and ensure the following libraries s
 * numpy
 * matplotlib
 * scipy
+* pandas
+* matplotlib.pyplot
+* sklearn
+* scikit-learn
 ```
 
 
